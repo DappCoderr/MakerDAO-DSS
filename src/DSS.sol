@@ -17,6 +17,7 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
     error DSC_NotAllowedToken();
     error DSC_TransferFail();
     error DSC_HealthFactorIsBelowMinimum();
+    error DSC_MintFailed();
 
     /////////////////////////////////////////////////////
     // STATE VARIABLES /////////
@@ -88,9 +89,13 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
 
     function redeemCollateral() external{}
 
-    function minDSC(uint256 amountDscToMint) external {
+    function mintDSC(uint256 amountDscToMint) external {
         s_DscMinted[msg.sender] += amountDscToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
+        bool minted = i_dsc.mint(msg.sender, amountDscToMint);
+        if(!minted){
+            revert DSC_MintFailed();
+        }
     }
 
     function burnDSC() external{}
