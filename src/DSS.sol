@@ -9,38 +9,57 @@ import {AggregatorV3Interface} from "lib/chainlink-brownie-contracts/contracts/s
 
 contract DecentralisedStableCoinSystem is ReentrancyGuard {
 
-    error DSS_NeedMoreThanZero();
-    error DSS_TokenAddressAndPriceFeedAddressMustBeSame();
-    error DSS_NotAllowedToken();
-    error DSS_TransferFail();
+    /////////////////////////////////////////////////////
+    // ERRORS /////////
+    /////////////////////////////////////////////////////
+    error DSC_NeedMoreThanZero();
+    error DSC_TokenAddressAndPriceFeedAddressMustBeSame();
+    error DSC_NotAllowedToken();
+    error DSC_TransferFail();
+    error DSC_HealthFactorIsBelowMinimum();
 
+    /////////////////////////////////////////////////////
+    // STATE VARIABLES /////////
+    /////////////////////////////////////////////////////
     mapping (address token => address priceFeed) private s_priceFeed;
     mapping (address user => mapping (address token => uint amount)) private s_collateralDeposited;
-    DecentralizedStableCoin private immutable i_dsc;
-    address[] private s_collateralTokens;
     mapping (address user => uint256 amount) private s_DscMinted;
+
+    address[] private s_collateralTokens;
+
+    DecentralizedStableCoin private immutable i_dsc;
+   
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant PRECISION = 1e18;
+    uint256 private constant LIQUIDATION_THRESHOLD = 50;
+    uint256 private constant LIQUIDATION_PRECISIION = 100;
+    uint256 private constant MIN_HEALTH_FACTOR = 1;
 
+    /////////////////////////////////////////////////////
+    // EVENTS /////////
+    /////////////////////////////////////////////////////
     event CollateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
 
+    /////////////////////////////////////////////////////
+    // MODIFIERS /////////
+    /////////////////////////////////////////////////////
     modifier moreThanZero(uint256 amount) {
         if(amount <= 0){
-            revert DSS_NeedMoreThanZero();
+            revert DSC_NeedMoreThanZero();
         }
         _;
     }
 
     modifier isAllowedToken(address token){
         if(s_priceFeed[token] == address(0)){
-            revert DSS_NotAllowedToken();
+            revert DSC_NotAllowedToken();
         }
         _;
     }
 
     constructor(address[] memory tokenAddress, address[] memory priceFeedAddress, address dscTokenAddress){
         if(tokenAddress.length != priceFeedAddress.length){
-            revert DSS_TokenAddressAndPriceFeedAddressMustBeSame();
+            revert DSC_TokenAddressAndPriceFeedAddressMustBeSame();
         }
         for (uint i = 0; i < tokenAddress.length; i++) {
             s_priceFeed[tokenAddress[i]] = priceFeedAddress[i];
@@ -61,7 +80,7 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         emit CollateralDeposited(msg.sender, collateralTokenAddress, collateralAmount);
         bool success = IERC20(collateralTokenAddress).transferFrom(msg.sender, address(this), collateralAmount);
         if(!success){
-            revert DSS_TransferFail();
+            revert DSC_TransferFail();
         }
     }
 
@@ -69,7 +88,10 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
 
     function redeemCollateral() external{}
 
-    function minDSC() external {}
+    function minDSC(uint256 amountDscToMint) external {
+        s_DscMinted[msg.sender] += amountDscToMint;
+        _revertIfHealthFactorIsBroken(msg.sender);
+    }
 
     function burnDSC() external{}
 
@@ -89,11 +111,20 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         return (totalDscMinted, collateralValueInUsd);
     }
 
+    // If the healthfactor is less than 1, then your positon will be get liquidated.
     function _healthfactor(address user) private view returns(uint256){
-        // (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+        uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISIION;
+        return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
     }
 
-    function _revertIfHealthFactorIsBroken(address user) internal view{}
+    function _revertIfHealthFactorIsBroken(address user) internal view {
+        uint256 userHealthFactor = _healthfactor(user);
+        if(userHealthFactor < MIN_HEALTH_FACTOR){
+            revert DSC_HealthFactorIsBelowMinimum();
+        }
+
+    }
 
     /////////////////////////////////////////////////////
     // Public & External View & Pure Functions /////////
