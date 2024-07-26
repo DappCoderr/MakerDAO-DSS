@@ -1,66 +1,12 @@
-## Foundry
+## MakerDAO Decentralised StableCoin System (DSS)
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+For this project we are using -
 
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+1. Relative Stability: Anchored or Pegged -> $1
+   1. Setup chainlink price feed.
+   2. setup a function to exchange the ETH and BTC.
+2. Stability Mechanism (Minting): Algorithmic (Decentralized)
+   1. People can only mint the stablecoin with enough collateral.
+3. Collateral: Exogenous (Crypto). Using only two types of Crypto currency as collateral.
+   1. This the wrapped version of ETH token called as wETH
+   2. This the wrapped version of BTC token called as wBTC
