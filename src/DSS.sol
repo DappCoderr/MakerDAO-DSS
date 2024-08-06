@@ -69,10 +69,13 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         i_dsc = DecentralizedStableCoin(dscTokenAddress);
     }
 
-    function depositCollateralAndMintDSC() external{}
+    function depositCollateralAndMintDSC(address collateralToken, uint256 collateralAmount, uint256 amontDscToMint) external{
+        depositCollateral(collateralToken, collateralAmount);
+        mintDSC(amontDscToMint);
+    }
 
     function depositCollateral(address collateralTokenAddress, uint256 collateralAmount) 
-    external 
+    public 
     moreThanZero(collateralAmount)
     isAllowedToken(collateralTokenAddress)
     nonReentrant
@@ -89,7 +92,7 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
 
     function redeemCollateral() external{}
 
-    function mintDSC(uint256 amountDscToMint) external {
+    function mintDSC(uint256 amountDscToMint) public {
         s_DscMinted[msg.sender] += amountDscToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
         bool minted = i_dsc.mint(msg.sender, amountDscToMint);
