@@ -12,7 +12,7 @@ contract DeployDSS is Script{
     address[] public tokenAddress;
     address[] public priceFeedAddress;
 
-    function run() external returns(DecentralizedStableCoin, DecentralisedStableCoinSystem) {
+    function run() external returns(DecentralizedStableCoin, DecentralisedStableCoinSystem, HelperConfig) {
 
         HelperConfig config = new HelperConfig();
         (address wethUsdPriceFeed, address wbtcUsdPriceFeed, address weth, address wbtc, uint256 deployerKey) = config.activeNetworkConfig();
@@ -26,7 +26,7 @@ contract DeployDSS is Script{
         DecentralisedStableCoinSystem dss = new DecentralisedStableCoinSystem(tokenAddress, priceFeedAddress, address(DecentralizedStableCoin));
         DecentralizedStableCoin.transferOwnership(address(DecentralisedStableCoinSystem));
         vm.stopBroadcast();
-        return (DecentralizedStableCoin, DecentralisedStableCoinSystem);
+        return (DecentralizedStableCoin, DecentralisedStableCoinSystem, config);
     }
 }
 
