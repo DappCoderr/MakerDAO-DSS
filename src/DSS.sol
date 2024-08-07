@@ -40,7 +40,7 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
     // EVENTS /////////
     /////////////////////////////////////////////////////
     event CollateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
-
+    event CollateralRedeem(address user, address collateralToken, uint256 tokenAmount);
     /////////////////////////////////////////////////////
     // MODIFIERS /////////
     /////////////////////////////////////////////////////
@@ -90,7 +90,18 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
 
     function redeemCollateralForDSC() external{}
 
-    function redeemCollateral() external{}
+    function redeemCollateral(address collateralTokenAddress, uint256 collateralAmount) 
+        external 
+        moreThanZero(collateralAmount) 
+        nonReentrant()
+    {
+        s_collateralDeposited[msg.sender][collateralTokenAddress] -= collateralAmount;
+        emit CollateralRedeem(msg.sender, collateralTokenAddress, collateralAmount);
+        bool sucess = IERC20(collateralTokenAddress).transfer(msg.sender, collateralAmount);
+        if(!sucess){
+            revert DSC_TransferFail();
+        }
+    }
 
     function mintDSC(uint256 amountDscToMint) public {
         s_DscMinted[msg.sender] += amountDscToMint;
@@ -99,6 +110,7 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         if(!minted){
             revert DSC_MintFailed();
         }
+        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
     function burnDSC() external{}
