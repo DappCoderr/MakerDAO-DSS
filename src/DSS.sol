@@ -88,10 +88,13 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         }
     }
 
-    function redeemCollateralForDSC() external{}
+    function redeemCollateralForDSC(address collateralToken, uint256 collateralAmount,uint256 amountDscToBurn) external{
+        burnDSC(amountDscToBurn);
+        redeemCollateral(collateralToken, collateralAmount);
+    }
 
     function redeemCollateral(address collateralTokenAddress, uint256 collateralAmount) 
-        external 
+        public 
         moreThanZero(collateralAmount) 
         nonReentrant()
     {
@@ -113,7 +116,14 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
-    function burnDSC() external{}
+    function burnDSC(uint256 amount) moreThanZero(amount) public {
+        s_DscMinted[msg.sender] -= amount;
+        bool success = i_dsc.transferFrom(msg.sender, address(this), amount);
+        if(!success){
+            revert DSC_MintFailed();
+        }
+        i_dsc.burn(amount);
+    }
 
     // This function is called to remove other people position to save the protocol.
     function liquidate() external{}
@@ -143,7 +153,6 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         if(userHealthFactor < MIN_HEALTH_FACTOR){
             revert DSC_HealthFactorIsBelowMinimum();
         }
-
     }
 
     /////////////////////////////////////////////////////
