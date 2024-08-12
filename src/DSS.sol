@@ -18,6 +18,8 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
     error DSC_TransferFail();
     error DSC_HealthFactorIsBelowMinimum();
     error DSC_MintFailed();
+    error DSC_HealthFactorOK();
+    error DSC__HealthFactorNotImproved();
 
     /////////////////////////////////////////////////////
     // STATE VARIABLES /////////
@@ -34,13 +36,14 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
     uint256 private constant PRECISION = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 50;
     uint256 private constant LIQUIDATION_PRECISIION = 100;
-    uint256 private constant MIN_HEALTH_FACTOR = 1;
+    uint256 private constant MIN_HEALTH_FACTOR = 1e18;
+    uint256 private constant LIQUIDATION_BONUS = 10;
 
     /////////////////////////////////////////////////////
     // EVENTS /////////
     /////////////////////////////////////////////////////
     event CollateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
-    event CollateralRedeem(address user, address collateralToken, uint256 tokenAmount);
+    event CollateralRedeem(address indexed redemeedFrom,address indexed redemeedTo, address indexed token, uint256 amount);
     /////////////////////////////////////////////////////
     // MODIFIERS /////////
     /////////////////////////////////////////////////////
@@ -75,10 +78,10 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
     }
 
     function depositCollateral(address collateralTokenAddress, uint256 collateralAmount) 
-    public 
-    moreThanZero(collateralAmount)
-    isAllowedToken(collateralTokenAddress)
-    nonReentrant
+        public 
+        moreThanZero(collateralAmount)
+        isAllowedToken(collateralTokenAddress)
+        nonReentrant
     {
         s_collateralDeposited[msg.sender][collateralTokenAddress] += collateralAmount;
         emit CollateralDeposited(msg.sender, collateralTokenAddress, collateralAmount);
@@ -98,12 +101,9 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         moreThanZero(collateralAmount) 
         nonReentrant()
     {
-        s_collateralDeposited[msg.sender][collateralTokenAddress] -= collateralAmount;
-        emit CollateralRedeem(msg.sender, collateralTokenAddress, collateralAmount);
-        bool sucess = IERC20(collateralTokenAddress).transfer(msg.sender, collateralAmount);
-        if(!sucess){
-            revert DSC_TransferFail();
-        }
+        _redeemCollateral(msg.sender, msg.sender, collateralTokenAddress, collateralAmount);
+        _revertIfHealthFactorIsBroken(msg.sender);
+
     }
 
     function mintDSC(uint256 amountDscToMint) public {
@@ -117,16 +117,32 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
     }
 
     function burnDSC(uint256 amount) moreThanZero(amount) public {
-        s_DscMinted[msg.sender] -= amount;
-        bool success = i_dsc.transferFrom(msg.sender, address(this), amount);
-        if(!success){
-            revert DSC_MintFailed();
-        }
-        i_dsc.burn(amount);
+        _burnDsc(amount, msg.sender, msg.sender);
+        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
     // This function is called to remove other people position to save the protocol.
-    function liquidate() external{}
+    function liquidate(address collateralAddress, address user, uint256 debtToCover) 
+        external 
+        moreThanZero(debtToCover)
+        nonReentrant()
+    {
+       uint256 startingUserHealthFactor = _healthfactor(user);
+       if(startingUserHealthFactor >= MIN_HEALTH_FACTOR){
+            revert DSC_HealthFactorOK();
+       }
+       uint256 tokenAmountFromDebtToCover = getTokenAmountFromUsd(collateralAddress, debtToCover);
+       uint256 bonusCollateral = (tokenAmountFromDebtToCover * LIQUIDATION_BONUS) / LIQUIDATION_PRECISIION;
+       uint256 totalCollateralRedeem = tokenAmountFromDebtToCover + bonusCollateral;
+       _redeemCollateral(user, msg.sender, collateralAddress, totalCollateralRedeem);
+       _burnDsc(debtToCover, user, msg.sender);
+
+       uint256 endingUserHealthFactor = _healthfactor(user);
+       if(endingUserHealthFactor <= startingUserHealthFactor){
+            revert DSC__HealthFactorNotImproved();
+       }
+       _revertIfHealthFactorIsBroken(msg.sender);
+    }
 
     // This function will return how healthy people are.
     function getHealthFactor() external view{}
@@ -134,6 +150,24 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
     /////////////////////////////////////////////////////
     // Private & Internal View & Pure Functions /////////
     /////////////////////////////////////////////////////
+
+    function _burnDsc(uint256 amountDscToBurn, address onBehalOf, address dscFrom) private{
+        s_DscMinted[onBehalOf] -= amountDscToBurn;
+        bool success = i_dsc.transferFrom(dscFrom, address(this), amountDscToBurn);
+        if(!success){
+            revert DSC_MintFailed();
+        }
+        i_dsc.burn(amountDscToBurn);
+    }
+
+    function _redeemCollateral(address from , address to, address collateralTokenAddress, uint256 collateralAmount) private {
+        s_collateralDeposited[from][collateralTokenAddress] -= collateralAmount;
+        emit CollateralRedeem(from, to, collateralTokenAddress, collateralAmount);
+        bool sucess = IERC20(collateralTokenAddress).transfer(to, collateralAmount);
+        if(!sucess){
+            revert DSC_TransferFail();
+        }
+    }
 
     function _getAccountInformation(address user) private view returns(uint256, uint256){
         uint256 totalDscMinted = s_DscMinted[user];
@@ -172,5 +206,11 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeed[token]);
         (,int256 price,,,) = priceFeed.latestRoundData();
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
+    }
+
+    function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public view returns(uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeed[token]);
+        (, int256 price,,,) = priceFeed.latestRoundData(); 
+        return (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);       
     }
 }
