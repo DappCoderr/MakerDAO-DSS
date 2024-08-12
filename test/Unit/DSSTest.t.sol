@@ -84,7 +84,8 @@ contract DSSTest is Test{
         (uint256 totalDscMinted, uint256 CollateralValueInUsd) = dss.getAccountInfo(USER);
 
         uint256 expectedTotalDscMinted = 0;
-        uint256 expectedCollateralValueInUsd = dss.getTokenAmountFromUsd(weth, CollateralValueInUsd);
-        assertEq(CollateralValueInUsd, expectedCollateralValueInUsd);
+        uint256 expectedDepositAmount = dss.getTokenAmountFromUsd(weth, CollateralValueInUsd);
+        assertEq(totalDscMinted, expectedCollateralValueInUsd);
+        assertEq(AMOUNT_COLLATERAL, expectedDepositAmount);
     }
 }
