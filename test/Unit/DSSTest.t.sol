@@ -16,6 +16,7 @@ contract DSSTest is Test{
     DecentralisedStableCoinSystem dss;
     HelperConfig config;
     address ethUsdPriceFeed;
+    address btcUsdPriceFeed;
     address weth;
 
     address public USER = makeAddr("Alice");
@@ -25,8 +26,27 @@ contract DSSTest is Test{
     function setUp() public{
         deployer = new DeployDSS();
         (dsc, dss, config) = deployer.run();
-        (ethUsdPriceFeed,,weth,,) = config.activeNetworkConfig();
+        (ethUsdPriceFeed,btcUsdPriceFeed,weth,,) = config.activeNetworkConfig();
         ERC20Mock(weth).mint(USER, STARTING_ERC20_BALANCE);
+    }
+
+    address[] public tokenAddress;
+    address[] public priceFeedAddress;
+
+    function testRevertIfTokenLengthDoesNotMatchPricesFeed() public {
+        tokenAddress.push(weth);
+        priceFeedAddress.push(ethUsdPriceFeed);
+        priceFeedAddress.push(btcUsdPriceFeed);
+
+        vm.expectRevert(dss.DSC_TokenAddressAndPriceFeedAddressMustBeSame.selector);
+        new DecentralisedStableCoinSystem(tokenAddress, priceFeedAddress, address(dsc));
+    }
+
+    function testGetTokenAmountFromUsd() public {
+        uint256 usdAmount = 100 ether;
+        uint256 expectedWeth = 0.05 ether;
+        uint256 actualWeth = dss.getTokenAmountFromUsd(weth, usdAmount);
+        assertEq(expectedWeth, actualWeth);
     }
 
     function getUSDValue() public{
@@ -42,5 +62,29 @@ contract DSSTest is Test{
         vm.expectRevert(DecentralisedStableCoinSystem.DSC_NeedMoreThanZero.selector);
         dss.depositCollateral(weth, 0);
         vm.stopPrank();
+    }
+
+    function testRevertWithUnapprovedCollateral() public {
+        ERC20Mock ranToken = new ERC20Mock("RAN", "RAN", USER, AMOUNT_COLLATERAL);
+        vm.startPrank(USER);
+        vm.expectRevert(dss.DSC_NotAllowedToken.selector);
+        dss.depositCollateral(address(ranToken), AMOUNT_COLLATERAL);
+        vm.stopPrank();
+    }
+
+    modifier depositedCollateral(){
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(dss), AMOUNT_COLLATERAL);
+        dss.depositCollateral(weth, AMOUNT_COLLATERAL);
+        vm.stopPrank();
+        _;
+    }
+
+    function testCanDepositAndGetCollateralInfo() public depositedCollateral {
+        (uint256 totalDscMinted, uint256 CollateralValueInUsd) = dss.getAccountInfo(USER);
+
+        uint256 expectedTotalDscMinted = 0;
+        uint256 expectedCollateralValueInUsd = dss.getTokenAmountFromUsd(weth, CollateralValueInUsd);
+        assertEq(CollateralValueInUsd, expectedCollateralValueInUsd);
     }
 }
