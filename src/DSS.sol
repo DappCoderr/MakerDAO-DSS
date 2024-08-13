@@ -222,6 +222,12 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 
+    function _calculateHealthFactor(uint256 totalMintedDsc, uint256 collateralValueInUsd) internal pure returns(uint256){
+        if(totalMintedDsc == 0) return type(uint256).max;
+        uint256 collateralAdjustmentForThreshold = (collateralValueInUsd*LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISIION;
+        return (collateralAdjustmentForThreshold * 1e18 / totalMintedDsc);
+    }
+
     function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public view returns(uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeed[token]);
         (, int256 price,,,) = priceFeed.latestRoundData(); 
