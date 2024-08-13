@@ -144,8 +144,22 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
+    function getPrecision() external pure returns(uint256){
+        return PRECISION;
+    }
+
+    function calculateHealthFactor(uint256 totalMintedDsc, uint256 collateralValueInUsd) external pure returns(uint256){
+        return _calculateHealthFactor(totalMintedDsc, collateralValueInUsd);
+    }
+
     // This function will return how healthy people are.
-    function getHealthFactor() external view{}
+    function getHealthFactor(address user) external view returns(uint256){
+        return _healthfactor(user);
+    }
+
+    function getLiquidationBonus() external pure returns(uint256){
+        return LIQUIDATION_BONUS;
+    }
 
     /////////////////////////////////////////////////////
     // Private & Internal View & Pure Functions /////////
