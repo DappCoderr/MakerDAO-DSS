@@ -144,22 +144,6 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
-    function getPrecision() external pure returns(uint256){
-        return PRECISION;
-    }
-
-    function calculateHealthFactor(uint256 totalMintedDsc, uint256 collateralValueInUsd) external pure returns(uint256){
-        return _calculateHealthFactor(totalMintedDsc, collateralValueInUsd);
-    }
-
-    // This function will return how healthy people are.
-    function getHealthFactor(address user) external view returns(uint256){
-        return _healthfactor(user);
-    }
-
-    function getLiquidationBonus() external pure returns(uint256){
-        return LIQUIDATION_BONUS;
-    }
 
     /////////////////////////////////////////////////////
     // Private & Internal View & Pure Functions /////////
@@ -206,6 +190,43 @@ contract DecentralisedStableCoinSystem is ReentrancyGuard {
     /////////////////////////////////////////////////////
     // Public & External View & Pure Functions /////////
     /////////////////////////////////////////////////////
+
+    function getPrecision() external pure returns(uint256){
+        return PRECISION;
+    }
+
+    function calculateHealthFactor(uint256 totalMintedDsc, uint256 collateralValueInUsd) external pure returns(uint256){
+        return _calculateHealthFactor(totalMintedDsc, collateralValueInUsd);
+    }
+
+    // This function will return how healthy people are.
+    function getHealthFactor(address user) external view returns(uint256){
+        return _healthfactor(user);
+    }
+
+    function getLiquidationBonus() external pure returns(uint256){
+        return LIQUIDATION_BONUS;
+    }
+
+    function getCollateralTokenPriceFeed(address token) external view returns(address){
+        return s_priceFeed[token];
+    }
+
+    function getCollateralTokens() external view returns(address[] memory){
+        return s_collateralTokens;
+    }
+
+    function getMinHealthFactor() external pure returns(uint256){
+        return MIN_HEALTH_FACTOR;
+    }
+
+    function getCollateralBalanceOfUser(address user, address token) external view returns(uint256){
+        return s_collateralDeposited[user][token];
+    }
+
+    function getDsc() external view returns(address){
+        return address(i_dsc);
+    }
 
     function getAccountCollateralValue(address user) public view returns(uint256 totalCollateralValueInUsd){
         for (uint256 i = 0; i < s_collateralTokens.length; i++) {
