@@ -8,6 +8,7 @@ import {DeployDSS} from "script/DeployDSS.s.sol";
 import {DecentralizedStableCoin} from "src/DSC.sol";
 import {DecentralisedStableCoinSystem} from "src/DSS.sol";
 import {HelperConfig} from "script/HelperConfig.s.sol";
+import {Handler} from "test/Fuzz/Handler.t.sol";
 
 contract InvariantTest is Test, StdInvariant{
 
