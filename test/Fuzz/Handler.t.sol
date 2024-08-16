@@ -30,6 +30,12 @@ contract Handler is Test{
         // dss.depositCollateral(collateral, amountCollateral);
     }
 
+    function mintDsc(uint256 amount) public{
+        amount = bound(amount, 1, MAX_DEPOSIT_SIZE);
+    }
+
+    
+
     function _getCollateralSeed(uint256 colateralSeed) public{
 
     }
