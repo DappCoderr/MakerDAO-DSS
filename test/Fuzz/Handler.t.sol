@@ -34,7 +34,16 @@ contract Handler is Test{
         amount = bound(amount, 1, MAX_DEPOSIT_SIZE);
     }
 
-    
+    function depositCollateral(uint256 collateralSeed, uint256 collateralAmount) public{
+        ERC20Mock collateral = _getCollateralSeed(collateralSeed);
+        amountCollateral = bound(collateralAmount, 1, MAX_DEPOSIT_SIZE);
+
+        vm.startPrank(msgSender);
+        collateral.mint(msg.sender, collateralAmount);
+        collateral.approve(address(dss), collateralAmount);
+        dss.depositCollateral(address(collateral), collateralAmount);
+        vm.stopPrank();
+    }
 
     function _getCollateralSeed(uint256 colateralSeed) public{
 
