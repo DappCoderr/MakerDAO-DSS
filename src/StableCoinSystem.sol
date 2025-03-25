@@ -3,11 +3,11 @@ pragma solidity ^0.8.18;
 
 import {IERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AggregatorV3Interface} from "../lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {Stablecoin} from "./StableCoin.sol";
+import {AggregatorV3Interface} from
+    "../lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {StableCoin} from "./StableCoin.sol";
 
 contract SimpleStablecoinSystem {
-
     using SafeERC20 for IERC20;
 
     error MustBeGreaterThanZero();
@@ -27,7 +27,7 @@ contract SimpleStablecoinSystem {
     uint256 public constant LIQUIDATION_BONUS = 5;
     uint256 public constant LIQUIDATION_PRECISION = 100;
 
-    Stablecoin public sc;
+    StableCoin public sc;
 
     address[] public supportedCollaterals;
     mapping(address collateral => bool isSupported) public isCollateralSupported;
@@ -49,7 +49,7 @@ contract SimpleStablecoinSystem {
         _;
     }
 
-    constructor(Stablecoin _sc, address[] memory _collaterals, address[] memory _priceFeeds) {
+    constructor(StableCoin _sc, address[] memory _collaterals, address[] memory _priceFeeds) {
         sc = _sc;
         supportedCollaterals = _collaterals;
         for (uint256 i = 0; i < _collaterals.length; i++) {

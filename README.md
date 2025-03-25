@@ -1,12 +1,11 @@
-## MakerDAO Decentralised StableCoin System (DSS)
+## Stablecoin using CDPs (Collateralized Debt Positions)
 
-For this project we are using -
+🚨 Code is not audited. Do not use in production
 
-1. Relative Stability: Anchored or Pegged -> $1
-   1. Setup chainlink price feed.
-   2. setup a function to exchange the ETH and BTC.
-2. Stability Mechanism (Minting): Algorithmic (Decentralized)
-   1. People can only mint the stablecoin with enough collateral.
-3. Collateral: Exogenous (Crypto). Using only two types of Crypto currency as collateral.
-   1. This the wrapped version of ETH token called as wETH
-   2. This the wrapped version of BTC token called as wBTC
+This project is a decentralized stablecoin designed to maintain a stable value pegged to the US Dollar (USD). It achieves this stability through CDPs and automated mechanisms to ensure the stablecoin remains over-collateralized and secure.
+
+How It Works 🔄
+1. Users lock up crypto assets (e.g., ETH) as collateral in a CDP.
+2. Mint stablecoins against the collateral, up to a percentage of its value.
+3. Liquidation Threshold is set. If your borrowed amount exceeds the threshold of your collateral’s value, the CDP is liquidated.
+4. Real-Time price feeds track collateral values and the stablecoin’s USD peg using Chainlink.
